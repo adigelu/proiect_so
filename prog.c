@@ -4,6 +4,9 @@
 #include<fcntl.h>
 #include<dirent.h>
 #include<string.h>
+#include<sys/stat.h>
+#include<time.h>
+
 
 void citire_director(char *director)
 {
@@ -60,9 +63,21 @@ int main(int argc, char *argv[])
       exit(1);
 
     }
+   int dimensiune;
+   struct stat dim;
+   if(stat("imagine.bmp",&dim)==-1)
+     {
+       perror("stat");
+       exit(1);
+     }
+   
+   dimensiune=dim.st_size;
+   int user=dim.st_uid;
+   //char *time =ctime(dim.st_mtim);
   
   char buffer[255];
-  sprintf(buffer,"nume fisier:%s\n inaltime: %d\n, lungime : %d\n",argv[1],inaltime,latimea);
+  sprintf(buffer,"nume fisier:%s\n inaltime: %d\n, lungime : %d\n, dimensiune %d\n user id: %d\n time of last modification %s\n",
+	  argv[1],inaltime,latimea,dimensiune,user,ctime(dim.st_mtim));
   // citire_director(argv[2]);
   write(f,buffer,strlen(buffer));
   
