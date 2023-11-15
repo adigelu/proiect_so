@@ -10,9 +10,12 @@
 
 void executa(char *path,char *nume,struct stat *st_file)
 {
-  char buffer[5000]={};
+  char buffer[5000]="";
   char a[50]="";
   strcpy(buffer,"nume:");
+  strcat(buffer,nume);
+  strcat(buffer,"\n");
+  printf("in");
   if(S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")==0)
   {
     char *file=path;
@@ -153,12 +156,23 @@ void executa(char *path,char *nume,struct stat *st_file)
   else{
     access_altii[2]='-';
   }
-  
+  strcat(buffer,"drepturi de acces user: ");
+  strcat(buffer,acces_usser);
+  strcat(buffer,"\n");
+  strcat(buffer,"drepturi de acces grup: ");
+  strcat(buffer,access_grup);
+  strcat(buffer,"\n");
+  strcat(buffer,"drepturi de acces altii: ");
+  strcat(buffer,access_altii);
+  strcat(buffer,"\n");
 int f=open("statistica.txt",O_WRONLY | O_APPEND);
-write(f,buffer,strlen(buffer));
-write(f,acces_usser,strlen(acces_usser));
-write(f,access_grup,strlen(access_grup));
-write(f,access_altii,strlen(access_altii));
+if(write(f,buffer,strlen(buffer))==-1)
+{
+  perror("eroare scriere");
+};
+//write(f,acces_usser,strlen(acces_usser));
+//write(f,access_grup,strlen(access_grup));
+//write(f,access_altii,strlen(access_altii));
 close(f);
 //close(fd);
 }
@@ -178,10 +192,13 @@ void citire_director(char *director)
       sprintf(path,"%s/%s",director,entry->d_name);
       
       printf("%s\n",entry->d_name);
-    }
+      //printf("while\n");
+    
+    
     if(strcmp(entry->d_name,"..")!=0 && strcmp(entry->d_name,".")!=0)
     {
       struct stat st_file;
+      //printf("str\n");
         if(stat(path,&st_file) == -1)
             {
             perror("in stat error");
@@ -193,8 +210,10 @@ void citire_director(char *director)
           citire_director(path);
         }
         else{
+          //printf("else\n");
           executa(path,entry->d_name,&st_file);
         }
+    }
     }
   
   
