@@ -90,7 +90,7 @@ void executa(char *path,char *nume,struct stat *st_file)
     strcat(buffer,a);
    }
    struct stat dim=*st_file;
-   char acces_usser[3]="";
+   char acces_usser[4]="";
   if(dim.st_mode & S_IRWXU)
   {
     acces_usser[0]='R';
@@ -100,19 +100,19 @@ void executa(char *path,char *nume,struct stat *st_file)
   }
   if(dim.st_mode & S_IWUSR)
   {
-    acces_usser[1]='w';
+    acces_usser[1]='W';
   }
    else{
     acces_usser[1]='-';
   }
   if(dim.st_mode & S_IXUSR)
   {
-    acces_usser[2]='E';
+    acces_usser[2]='X';
   }
    else{
     acces_usser[2]='-';
   }
-  char access_grup[3]="";
+  char access_grup[4]="";
   if(dim.st_mode & S_IRGRP)
   {
     access_grup[0]='R';
@@ -129,12 +129,12 @@ void executa(char *path,char *nume,struct stat *st_file)
   }
   if(dim.st_mode & S_IXGRP)
   {
-    access_grup[2]='E';
+    access_grup[2]='X';
   }
   else{
     access_grup[2]='-';
   }
-    char access_altii[3]="";
+    char access_altii[4]="";
      if(dim.st_mode & S_IROTH)
   {
     access_altii[0]='R';
@@ -151,7 +151,7 @@ void executa(char *path,char *nume,struct stat *st_file)
   }
   if(dim.st_mode & S_IROTH)
   {
-    access_altii[2]='E';
+    access_altii[2]='X';
   }
   else{
     access_altii[2]='-';
