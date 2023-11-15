@@ -8,10 +8,24 @@
 #include<time.h>
 #include<ctype.h>
 
-void executa(char *path,char *nume,struct stat *st_file)
+char a[50]="";
+void dimensiune(struct stat *st_file)
+{
+   sprintf(a,"dimensiune: %ld\n", st_file->st_size);
+}
+void utilizator(struct stat *st_file)
+{
+   sprintf(a,"utilizator %d\n", st_file->st_uid);
+}
+void modificare(struct stat *st_file)
+{
+   sprintf(a,"ultima modificare:%s\n", ctime(&st_file->st_mtime));
+}
+
+void executa(char *path,char *nume,struct stat *st_file,char *director)
 {
   char buffer[5000]="";
-  char a[50]="";
+  
   strcpy(buffer,"nume:");
   strcat(buffer,nume);
   strcat(buffer,"\n");
@@ -48,11 +62,36 @@ void executa(char *path,char *nume,struct stat *st_file)
     //strcat(buffer,"\n");
     //strcat(buffer,latimea);
     strcat(buffer,a);
+    struct stat st_file;
+    dimensiune(&st_file);
+    strcat(buffer,a);
+    utilizator(st_file);
+    strcat(buffer,a);
+    
     if(close(fd)==-1)
 	{
 	  perror("error close");
 	  exit(1);
 	}
+    struct dirent *entry;
+    char path[200];
+    sprintf(path,"%s",director);
+    strcat(path,"/");
+    strcat(path,nume);
+    strcat(path,"_statistica.txt");
+    int f=creat(path,S_IRUSR | S_IWUSR);
+    if(f==-1)
+      {
+	perror("eroare creare fisier\n");
+	exit(-1);
+      }
+    if(write(f,buffer,strlen(buffer))==-1)
+      {
+	perror("eroare scriere fisier\n");
+	exit(-1);
+      }
+    
+    
   }
   if(S_ISLNK(st_file->st_mode))
   {
@@ -176,15 +215,23 @@ if(write(f,buffer,strlen(buffer))==-1)
 close(f);
 //close(fd);
 }
-void citire_director(char *director)
+void citire_director(char *director1,char *director2)
 {
   DIR *dir;
-  dir=opendir(director);
+  DIR *dir2
+  dir=opendir(director1);
+  dir2=opendir(director2);
   if(dir==NULL)
     {
       perror("open director");
       exit(1);
     }
+  if(dir2==NULL)
+    {
+      perror("open director2\n");
+      exit(1);
+    }
+  
   struct dirent *entry;
   char path[300];
   while((entry=readdir(dir))!= NULL)
@@ -206,12 +253,12 @@ void citire_director(char *director)
             }
         if(S_ISDIR(st_file.st_mode))
         {
-          executa(path,entry->d_name,&st_file);
-          citire_director(path);
+          executa(path,entry->d_name,&st_file,dir2);
+          citire_director(path,dir2);
         }
         else{
           //printf("else\n");
-          executa(path,entry->d_name,&st_file);
+          executa(path,entry->d_name,&st_file,dir2);
         }
     }
     }
