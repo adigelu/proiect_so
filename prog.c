@@ -7,8 +7,9 @@
 #include<sys/stat.h>
 #include<time.h>
 #include<ctype.h>
+#include <sys/wait.h>
 
-char a[50]="";
+char a[100]="";
 void dimensiune(struct stat *st_file)
 {
    sprintf(a,"dimensiune: %ld\n", st_file->st_size);
@@ -21,20 +22,137 @@ void modificare(struct stat *st_file)
 {
    sprintf(a,"ultima modificare:%s\n", ctime(&st_file->st_mtime));
 }
-
-void executa(char *path,char *nume,struct stat *st_file,char *director)
+void drepturi_de_access(struct stat *dim)
 {
-  char buffer[5000]="";
   
+   char acces_usser[4]="";
+  if(dim->st_mode & S_IRWXU)
+  {
+    acces_usser[0]='R';
+  }
+  else{
+    acces_usser[0]='-';
+  }
+  if(dim->st_mode & S_IWUSR)
+  {
+    acces_usser[1]='W';
+  }
+   else{
+    acces_usser[1]='-';
+  }
+  if(dim->st_mode & S_IXUSR)
+  {
+    acces_usser[2]='X';
+  }
+   else{
+    acces_usser[2]='-';
+  }
+  char access_grup[4]="";
+  if(dim->st_mode & S_IRGRP)
+  {
+    access_grup[0]='R';
+  }
+  else{
+    access_grup[0]='-';
+  }
+  if(dim->st_mode & S_IWGRP )
+  {
+    access_grup[1]='W';
+  }
+  else{
+    access_grup[1]='-';
+  }
+  if(dim->st_mode & S_IXGRP)
+  {
+    access_grup[2]='X';
+  }
+  else{
+    access_grup[2]='-';
+  }
+    char access_altii[4]="";
+     if(dim->st_mode & S_IROTH)
+  {
+    access_altii[0]='R';
+  }
+  else{
+    access_altii[0]='-';
+  }
+  if(dim->st_mode & S_IWOTH  )
+  {
+    access_altii[1]='W';
+  }
+  else{
+    access_altii[1]='-';
+  }
+  if(dim->st_mode & S_IROTH)
+  {
+    access_altii[2]='X';
+  }
+  else{
+    access_altii[2]='-';
+  }
+  strcpy(a,"drepturi de acces user: ");
+  strcat(a,acces_usser);
+  strcat(a,"\n");
+  strcat(a,"drepturi de acces grup: ");
+  strcat(a,access_grup);
+  strcat(a,"\n");
+  strcat(a,"drepturi de acces altii: ");
+  strcat(a,access_altii);
+  strcat(a,"\n");
+}
+void contor_leg(struct stat *st_file)
+{
+  sprintf(a, "%ld\n", st_file->st_nlink);
+}
+
+void executa(char *path,char *nume,struct stat *st_file,char *director2)
+{
+
+  int pid;
+  int status;
+  pid=fork();
+  if(pid<0)
+    {
+      perror("eroare pid\n");
+      exit(-1);
+    }
+  
+    //printf("in\n");
+    char buffer[500]="";
+      DIR *director=opendir(director2);
+  if(director == NULL)
+    {
+      perror("error open director");
+      exit(1);
+    }
+   
   strcpy(buffer,"nume:");
   strcat(buffer,nume);
   strcat(buffer,"\n");
-  printf("in");
+  //printf("in");
+  //struct dirent *entry;
+    char pathdir[200];
+    sprintf(pathdir,"%s",director2);
+    strcat(pathdir,"/");
+    strcat(pathdir,nume);
+    strcat(pathdir,"_statistica.txt");
+    int f=creat(pathdir,O_WRONLY | O_CREAT | O_APPEND | S_IWUSR | S_IWGRP | S_IWOTH | S_IRUSR | S_IRGRP | S_IROTH);
+    if(f==-1)
+      {
+	perror("eroare creare fisier\n");
+	exit(-1);
+      }
+  if(pid==0)
+  {
   if(S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")==0)
   {
+    pid=fork();
+    if(pid==0)
+    {
     char *file=path;
     int fd;
-  fd=open(file, O_RDONLY);
+  fd=open(file, O_RDWR);
   if(fd==-1){
     perror("error open");
     exit(1);
@@ -57,188 +175,162 @@ void executa(char *path,char *nume,struct stat *st_file,char *director)
       exit(1);
 
     }
+    int pixel=latimea*inaltime;
+    char header[54];
+    if((read(fd,header,sizeof(header)))!=sizeof(header))
+    {
+      perror("citire");
+      exit(-1);
+    }
+    for(int i=0;i<pixel;i++)
+    {
+      unsigned char color[3];
+      if((read(fd,color,sizeof(color)))!=sizeof(color))
+      {
+        perror("citire");
+        exit(-1);
+
+      }
+      unsigned char gri=0.299*color[0]+0.587*color[1]+0.114*color[2];
+      lseek(fd,-3,SEEK_CUR);
+	    write(fd,&gri,sizeof(gri));
+	    write(fd,&gri,sizeof(gri));
+	    write(fd,&gri,sizeof(gri));
+    }
     sprintf(a,"inaltime:%d \n latime:%d\n",inaltime,latimea);
     //strcat(buffer,inaltime);
     //strcat(buffer,"\n");
     //strcat(buffer,latimea);
     strcat(buffer,a);
-    struct stat st_file;
-    dimensiune(&st_file);
-    strcat(buffer,a);
-    utilizator(st_file);
-    strcat(buffer,a);
-    
+    //struct stat st_file;
     if(close(fd)==-1)
 	{
 	  perror("error close");
 	  exit(1);
 	}
-    struct dirent *entry;
-    char path[200];
-    sprintf(path,"%s",director);
-    strcat(path,"/");
-    strcat(path,nume);
-    strcat(path,"_statistica.txt");
-    int f=creat(path,S_IRUSR | S_IWUSR);
-    if(f==-1)
+    dimensiune(st_file);
+    strcat(buffer,a);
+    utilizator(st_file);
+    strcat(buffer,a);
+    drepturi_de_access(st_file);
+    strcat(buffer,a);
+    contor_leg(st_file);
+    strcat(buffer,a);
+    }
+    else{
+      pid=wait(&status);
+      if(WIFEXITED(status))
       {
-	perror("eroare creare fisier\n");
-	exit(-1);
+        sprintf(a,"s a terminat procesul cu pid%d\n",pid);
+        if(write(f,a,strlen(a))==-1)
+	{
+	  perror("error scriere in fisier");
+	  exit(1);
+	}
+     
       }
-    if(write(f,buffer,strlen(buffer))==-1)
-      {
-	perror("eroare scriere fisier\n");
-	exit(-1);
-      }
-    
-    
+    }
   }
   if(S_ISLNK(st_file->st_mode))
   {
-    struct stat lst_file;
+    /*struct stat lst_file;
     if(lstat(path,&lst_file) == -1)
     {
       perror("stat error");
       exit(1);
     }
-    
-    sprintf(a, "dime: %ld\n", lst_file.st_size);
+    */
+    dimensiune(st_file);
     strcat(buffer,a);
     strcat(buffer,"\n");
-  }
-  if(S_ISREG(st_file->st_mode) || (S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")==0) || S_ISDIR(st_file->st_mode))
-  {
-    strcat(buffer,"utilizator:");
-    sprintf(a,"%d\n", st_file->st_uid);
+    drepturi_de_access(st_file);
     strcat(buffer,a);
     
   }
-  if(S_ISREG(st_file->st_mode) || (S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")==0) || S_ISLNK(st_file->st_mode))
+  if(S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")!=0)
   {
-    strcat(buffer,"dimensiune:");
-    sprintf(a,"%ld\n", st_file->st_size);
+    dimensiune(st_file);
+    strcat(buffer,a);
+    utilizator(st_file);
+    strcat(buffer,a);
+    drepturi_de_access(st_file);
+    strcat(buffer,a);
+    contor_leg(st_file);
     strcat(buffer,a);
   }
-   if(S_ISREG(st_file->st_mode) || (S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")==0))
-   {
-    strcat(a,"ultima modificare:");
-    sprintf(a,"%s", ctime(&st_file->st_mtime));
+  if(S_ISDIR(st_file->st_mode))
+  {
+    utilizator(st_file);
     strcat(buffer,a);
-    strcat(buffer,"contor de legaturi:");
-    sprintf(a, "%ld\n", st_file->st_nlink);
+    drepturi_de_access(st_file);
     strcat(buffer,a);
-   }
-   struct stat dim=*st_file;
-   char acces_usser[4]="";
-  if(dim.st_mode & S_IRWXU)
+    contor_leg(st_file);
+    strcat(buffer,a);
+  }
+   
+  if(write(f,buffer,strlen(buffer))==-1)
+    {
+	    perror("eroare scriere fisier\n");
+	    exit(-1);
+    }
+  if(close(f)==-1)
   {
-    acces_usser[0]='R';
+    perror("eroare inchidere fisier\n");
+    exit(-1);
+  }
   }
   else{
-    acces_usser[0]='-';
+    pid=wait(&status);
+    if(WIFEXITED(status))
+    {
+      sprintf(a,"procesul cu pid:%d si codul:%d s-a incheiat\n",pid,WIFEXITED(status));
+      /*DIR *director=opendir(director2);
+  if(director == NULL)
+    {
+      perror("error open director");
+      exit(1);
+    }
+    
+      struct stat st_stat; 
+      if(stat(director2,&st_stat) == -1)
+	{
+	  perror("out(statistici.txt) stat error");
+	  exit(1);
+	}*/
+      if(write(f,a,strlen(a))==-1)
+	{
+	  perror("error scriere in fisier");
+	  exit(1);
+	}
+      if(close(f)==-1)
+	{
+	  perror("error close "); 
+	  exit(1);
+	}
+    }
   }
-  if(dim.st_mode & S_IWUSR)
-  {
-    acces_usser[1]='W';
-  }
-   else{
-    acces_usser[1]='-';
-  }
-  if(dim.st_mode & S_IXUSR)
-  {
-    acces_usser[2]='X';
-  }
-   else{
-    acces_usser[2]='-';
-  }
-  char access_grup[4]="";
-  if(dim.st_mode & S_IRGRP)
-  {
-    access_grup[0]='R';
-  }
-  else{
-    access_grup[0]='-';
-  }
-  if(dim.st_mode & S_IWGRP )
-  {
-    access_grup[1]='W';
-  }
-  else{
-    access_grup[1]='-';
-  }
-  if(dim.st_mode & S_IXGRP)
-  {
-    access_grup[2]='X';
-  }
-  else{
-    access_grup[2]='-';
-  }
-    char access_altii[4]="";
-     if(dim.st_mode & S_IROTH)
-  {
-    access_altii[0]='R';
-  }
-  else{
-    access_altii[0]='-';
-  }
-  if(dim.st_mode & S_IWOTH  )
-  {
-    access_altii[1]='W';
-  }
-  else{
-    access_altii[1]='-';
-  }
-  if(dim.st_mode & S_IROTH)
-  {
-    access_altii[2]='X';
-  }
-  else{
-    access_altii[2]='-';
-  }
-  strcat(buffer,"drepturi de acces user: ");
-  strcat(buffer,acces_usser);
-  strcat(buffer,"\n");
-  strcat(buffer,"drepturi de acces grup: ");
-  strcat(buffer,access_grup);
-  strcat(buffer,"\n");
-  strcat(buffer,"drepturi de acces altii: ");
-  strcat(buffer,access_altii);
-  strcat(buffer,"\n");
-int f=open("statistica.txt",O_WRONLY | O_APPEND);
-if(write(f,buffer,strlen(buffer))==-1)
-{
-  perror("eroare scriere");
-};
-//write(f,acces_usser,strlen(acces_usser));
-//write(f,access_grup,strlen(access_grup));
-//write(f,access_altii,strlen(access_altii));
-close(f);
-//close(fd);
+  
 }
 void citire_director(char *director1,char *director2)
 {
   DIR *dir;
-  DIR *dir2
+  
   dir=opendir(director1);
-  dir2=opendir(director2);
+  //dir2=opendir(director2);
   if(dir==NULL)
     {
       perror("open director");
       exit(1);
     }
-  if(dir2==NULL)
-    {
-      perror("open director2\n");
-      exit(1);
-    }
+  
   
   struct dirent *entry;
   char path[300];
   while((entry=readdir(dir))!= NULL)
     {
-      sprintf(path,"%s/%s",director,entry->d_name);
+      sprintf(path,"%s/%s",director1,entry->d_name);
       
-      printf("%s\n",entry->d_name);
+      //printf("%s\n",entry->d_name);
       //printf("while\n");
     
     
@@ -253,12 +345,12 @@ void citire_director(char *director1,char *director2)
             }
         if(S_ISDIR(st_file.st_mode))
         {
-          executa(path,entry->d_name,&st_file,dir2);
-          citire_director(path,dir2);
+          executa(path,entry->d_name,&st_file,director2);
+          citire_director(path,director2);
         }
         else{
           //printf("else\n");
-          executa(path,entry->d_name,&st_file,dir2);
+          executa(path,entry->d_name,&st_file,director2);
         }
     }
     }
@@ -392,6 +484,5 @@ int main(int argc, char *argv[])
     exit(1);
     }
     close(f);*/
-    citire_director(argv[1]);
-    return 0;
+    citire_director(argv[1],argv[2]);
 }
