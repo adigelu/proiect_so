@@ -111,14 +111,8 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
 
   int pid;
   int status;
-  pid=fork();
-  if(pid<0)
-    {
-      perror("eroare pid\n");
-      exit(-1);
-    }
   
-    //printf("in\n");
+ 
     char buffer[500]="";
       DIR *director=opendir(director2);
   if(director == NULL)
@@ -143,13 +137,21 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
 	perror("eroare creare fisier\n");
 	exit(-1);
       }
-  if(pid==0)
-  {
+  
+  
   if(S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")==0)
   {
     pid=fork();
+     if(pid<0)
+    {
+      perror("eroare pid\n");
+      exit(-1);
+    }
     if(pid==0)
     {
+
+    
+    //printf("in\n");
     char *file=path;
     int fd;
   fd=open(file, O_RDWR);
@@ -216,23 +218,19 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
     strcat(buffer,a);
     contor_leg(st_file);
     strcat(buffer,a);
+    
+      exit(1);
     }
-    else{
-      pid=wait(&status);
-      if(WIFEXITED(status))
-      {
-        sprintf(a,"s a terminat procesul cu pid%d\n",pid);
-        if(write(f,a,strlen(a))==-1)
-	{
-	  perror("error scriere in fisier");
-	  exit(1);
-	}
-     
-      }
-    }
+  
   }
   if(S_ISLNK(st_file->st_mode))
   {
+    pid=fork();
+    if(pid<0)
+    {
+      perror("eroare fork\n");
+      exit(-1);
+    }
     /*struct stat lst_file;
     if(lstat(path,&lst_file) == -1)
     {
@@ -245,10 +243,17 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
     strcat(buffer,"\n");
     drepturi_de_access(st_file);
     strcat(buffer,a);
+    exit(1);
     
   }
   if(S_ISREG(st_file->st_mode) && strcmp(nume + strlen(nume) - 4, ".bmp")!=0)
   {
+    pid=fork();
+    if(pid<0)
+    {
+      perror("eroare fork\n");
+      exit(-1);
+    }
     dimensiune(st_file);
     strcat(buffer,a);
     utilizator(st_file);
@@ -257,15 +262,23 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
     strcat(buffer,a);
     contor_leg(st_file);
     strcat(buffer,a);
+    exit(2);
   }
   if(S_ISDIR(st_file->st_mode))
   {
+    pid=fork();
+    if(pid<0)
+    {
+      perror("eroare fork\n");
+      exit(-1);
+    }
     utilizator(st_file);
     strcat(buffer,a);
     drepturi_de_access(st_file);
     strcat(buffer,a);
     contor_leg(st_file);
     strcat(buffer,a);
+    exit(3);
   }
    
   if(write(f,buffer,strlen(buffer))==-1)
@@ -278,9 +291,9 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
     perror("eroare inchidere fisier\n");
     exit(-1);
   }
-  }
-  else{
-    pid=wait(&status);
+  
+  
+    while(pid=wait(&status)!=-1){
     if(WIFEXITED(status))
     {
       sprintf(a,"procesul cu pid:%d si codul:%d s-a incheiat\n",pid,WIFEXITED(status));
@@ -300,8 +313,9 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
       if(write(f,a,strlen(a))==-1)
 	{
 	  perror("error scriere in fisier");
-	  exit(1);
+	  exit(-1);
 	}
+    }
       if(close(f)==-1)
 	{
 	  perror("error close "); 
@@ -310,7 +324,7 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
     }
   }
   
-}
+
 void citire_director(char *director1,char *director2)
 {
   DIR *dir;
