@@ -105,7 +105,116 @@ void contor_leg(struct stat *st_file)
 {
   sprintf(a, "%ld\n", st_file->st_nlink);
 }
+void bmb(char *path,char *nume,struct stat *st_file,char *director2)
+{
+  int pid;
+  int status;
+  pid=fork();
+  if(pid==0)
+  {
+     char buffer[500]="";
+      DIR *director=opendir(director2);
+  if(director == NULL)
+    {
+      perror("error open director");
+      exit(1);
+    }
+   
+  strcpy(buffer,"nume:");
+  strcat(buffer,nume);
+  strcat(buffer,"\n");
+  //printf("in");
+  //struct dirent *entry;
+    char pathdir[200];
+    sprintf(pathdir,"%s",director2);
+    strcat(pathdir,"/");
+    strcat(pathdir,nume);
+    strcat(pathdir,"_statistica.txt");
+    int f=creat(pathdir,O_WRONLY | O_CREAT | O_APPEND | S_IWUSR | S_IWGRP | S_IWOTH | S_IRUSR | S_IRGRP | S_IROTH);
+    if(f==-1)
+      {
+	perror("eroare creare fisier\n");
+	exit(-1);
+      }
+    char *file=path;
+    int fd;
+  fd=open(file, O_RDWR);
+  if(fd==-1){
+    perror("error open");
+    exit(1);
 
+  }
+  int latimea;
+  int inaltime;
+  lseek(fd,18,SEEK_SET);
+
+  if(read(fd,&latimea,sizeof(int))!=sizeof(int))
+    {
+      perror("error read");
+      exit(1);
+
+    }
+  lseek(fd,22,SEEK_SET);
+   if(read(fd,&inaltime,sizeof(int))!=sizeof(int))
+    {
+      perror("error read");
+      exit(1);
+
+    }
+    int pixel=latimea*inaltime;
+    char header[54];
+    if((read(fd,header,sizeof(header)))!=sizeof(header))
+    {
+      perror("citire");
+      exit(-1);
+    }
+    for(int i=0;i<pixel;i++)
+    {
+      unsigned char color[3];
+      if((read(fd,color,sizeof(color)))!=sizeof(color))
+      {
+        perror("citire");
+        exit(-1);
+
+      }
+      unsigned char gri=0.299*color[0]+0.587*color[1]+0.114*color[2];
+      lseek(fd,-3,SEEK_CUR);
+	    write(fd,&gri,sizeof(gri));
+	    write(fd,&gri,sizeof(gri));
+	    write(fd,&gri,sizeof(gri));
+    }
+    sprintf(a,"inaltime:%d \n latime:%d\n",inaltime,latimea);
+    //strcat(buffer,inaltime);
+    //strcat(buffer,"\n");
+    //strcat(buffer,latimea);
+    strcat(buffer,a);
+    //struct stat st_file;
+    if(close(fd)==-1)
+	{
+	  perror("error close");
+	  exit(1);
+	}
+    dimensiune(st_file);
+    strcat(buffer,a);
+    utilizator(st_file);
+    strcat(buffer,a);
+    drepturi_de_access(st_file);
+    strcat(buffer,a);
+    contor_leg(st_file);
+    strcat(buffer,a);
+    if(write(f,buffer,strlen(buffer))==-1)
+    {
+	    perror("eroare scriere fisier\n");
+	    exit(-1);
+    }
+  if(close(f)==-1)
+  {
+    perror("eroare inchidere fisier\n");
+    exit(-1);
+  }
+  exit(1);
+  }
+}
 void executa(char *path,char *nume,struct stat *st_file,char *director2)
 {
 
@@ -219,7 +328,7 @@ void executa(char *path,char *nume,struct stat *st_file,char *director2)
     contor_leg(st_file);
     strcat(buffer,a);
     
-      exit(1);
+      
     }
   
   }
