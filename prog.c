@@ -115,7 +115,7 @@ void contor_leg(struct stat *st_file)
   sprintf(a, "%ld\n", st_file->st_nlink);
 }
 int suma = 0;
-void executa(char *path, char *nume, struct stat *st_file, char *director2, char c)
+void executa(char *path, char *nume, struct stat *st_file, char *director2, char *c)
 {
 
   pid_t pid;
@@ -470,7 +470,7 @@ void executa(char *path, char *nume, struct stat *st_file, char *director2, char
   }
 }
 
-void citire_director(char *director1, char *director2, char c)
+void citire_director(char *director1, char *director2, char *c)
 {
   // printf("in\n");
   DIR *dir;
@@ -528,8 +528,8 @@ int main(int argc, char *argv[])
   {
     return 0;
   }
-  char c = argv[3];
+  char *c = argv[3];
   citire_director(argv[1], argv[2], c);
-  printf("au fost indentificatte in total %d propozitii corecte care contin litera %c\n", suma, c);
+  printf("au fost indentificatte in total %d propozitii corecte care contin litera %s\n", suma, c);
   return 0;
 }
